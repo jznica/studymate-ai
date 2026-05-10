@@ -1,4 +1,4 @@
-# 💚 ADRIAN AI — Your Study Companion
+#  ADRIAN AI : Your Study Companion
 
 > *The RAG-powered study boyfriend you didn't know you needed.*
 
@@ -22,7 +22,7 @@ the context, and answers questions like your most brilliant friend.
 
 ---
 
-## 🚀 Local Setup
+## Local Setup
 
 ### 1. Clone / download the project
 
@@ -56,7 +56,7 @@ The app opens at `http://localhost:8501`
 ### 5. Use it
 1. Paste your OpenAI API key in the sidebar (get one at [platform.openai.com](https://platform.openai.com))
 2. Upload a PDF (lecture notes, textbook chapter, paper…)
-3. Start chatting with Adrian 💚
+3. Start chatting with Adrian 
 
 ---
 
@@ -76,7 +76,7 @@ git push -u origin main
 2. Sign in with GitHub
 3. Click **"New app"**
 4. Select your repo → branch `main` → file `app.py`
-5. Click **Deploy** 🚀
+5. Click **Deploy** 
 
 That's it — FREE hosting, no credit card needed.
 
@@ -89,7 +89,7 @@ Then in `app.py`, use `st.secrets["OPENAI_API_KEY"]` as a fallback.
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 studymate-ai/
@@ -101,7 +101,7 @@ studymate-ai/
 
 ---
 
-## 🧠 How It Works (For Your Portfolio)
+##  How It Works (For Your Portfolio)
 
 ```
 PDF Upload
@@ -123,7 +123,7 @@ ConversationBufferMemory → maintains chat history context
 
 ---
 
-## 💡 Why This Impresses Recruiters
+##  Why This Impresses Recruiters
 
 - ✅ **Real RAG pipeline** — not just a wrapper, full retrieval architecture
 - ✅ **LangChain** — industry-standard LLM framework
@@ -135,7 +135,7 @@ ConversationBufferMemory → maintains chat history context
 
 ---
 
-## 📬 Contact
+##  Contact
 
 Built by **Jenica A** — Saveetha School of Engineering, B.Tech AIML
 
