@@ -1,7 +1,5 @@
 import streamlit as st
 import os
-import tempfile
-from pathlib import Path
 from openai import OpenAI
 
 st.set_page_config(
@@ -11,265 +9,70 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-import faiss
 import numpy as np
 from pypdf import PdfReader
 
-# ── CSS — clean minimal aesthetic ─────────────────────────────────────────────
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-* { box-sizing: border-box; }
-
-html, body, [data-testid="stAppViewContainer"] {
-    background: #f0f0ee !important;
-    color: #1a1a1a !important;
-    font-family: 'Inter', -apple-system, system-ui, sans-serif !important;
-}
-
-[data-testid="stSidebar"] {
-    background: #ededed !important;
-    border-right: 1px solid #e0e0de !important;
-}
-
-[data-testid="stSidebar"] * {
-    font-family: 'Inter', sans-serif !important;
-}
-
-/* KEEP sidebar toggle visible */
-[data-testid="stSidebarCollapseButton"],
-[data-testid="collapsedControl"] {
-    display: block !important;
-    visibility: visible !important;
-}
-
-#MainMenu, footer { visibility: hidden; }
-.stDeployButton { display: none; }
-
-/* ── Header ── */
-.adrian-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 28px 0 24px 0;
-    border-bottom: 1px solid #e0e0de;
-    margin-bottom: 28px;
-}
-
-.adrian-logo {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: #ededed;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.adrian-title h1 {
-    font-size: clamp(1.4rem, 2.5vw, 1.75rem);
-    font-weight: 600;
-    letter-spacing: -0.025em;
-    margin: 0 0 2px 0;
-    color: #1a1a1a;
-    line-height: 1.15;
-}
-
-.adrian-title p {
-    font-size: 0.8rem;
-    color: #888;
-    margin: 0;
-    font-weight: 400;
-}
-
-.status-dot {
-    width: 6px;
-    height: 6px;
-    background: #3b82f6;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-}
-
-/* ── Welcome card ── */
-.welcome-card {
-    background: #ededed;
-    border: 1px solid #e0e0de;
-    border-radius: 16px;
-    padding: 40px 28px;
-    margin: 16px 0;
-    text-align: center;
-}
-
-.welcome-badge {
-    display: inline-block;
-    font-size: 11.5px;
-    font-weight: 500;
-    color: #3b82f6;
-    margin-bottom: 16px;
-}
-
-.welcome-card h2 {
-    font-size: 1.5rem;
-    font-weight: 500;
-    color: #1a1a1a;
-    margin: 0 0 12px 0;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-}
-
-.welcome-card p {
-    color: #666;
-    font-size: 0.875rem;
-    line-height: 1.6;
-    margin: 0;
-    font-weight: 400;
-}
-
-/* ── Stat cards ── */
-.stat-card {
-    background: #ededed;
-    border: 1px solid #e0e0de;
-    border-radius: 12px;
-    padding: 14px;
-    text-align: center;
-}
-
-.stat-val {
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: #1a1a1a;
-    line-height: 1;
-    margin-bottom: 4px;
-    letter-spacing: -0.02em;
-}
-
-.stat-lbl {
-    font-size: 0.65rem;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 500;
-}
-
-/* ── Chat bubbles ── */
-.msg-row {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    margin-bottom: 16px;
-}
-
-.msg-row.user { flex-direction: row-reverse; }
-
-.msg-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 2px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.msg-avatar.adrian { background: #1a1a1a; color: #fff; }
-.msg-avatar.user { background: #3b82f6; color: #fff; }
-
-.msg-bubble {
-    max-width: 75%;
-    padding: 14px 18px;
-    border-radius: 14px;
-    font-size: 0.9rem;
-    line-height: 1.65;
-    font-weight: 400;
-}
-
-.msg-bubble.adrian {
-    background: #ededed;
-    border: 1px solid #e0e0de;
-    color: #1a1a1a;
-    border-top-left-radius: 4px;
-}
-
-.msg-bubble.user {
-    background: #3b82f6;
-    color: #fff;
-    border-top-right-radius: 4px;
-}
-
-.msg-name {
-    font-size: 0.7rem;
-    font-weight: 500;
-    margin-bottom: 6px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: #888;
-}
-
-.msg-name.user { text-align: right; }
-
-/* ── Streamlit overrides ── */
-.stButton > button {
-    background: #1a1a1a !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 999px !important;
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 500 !important;
-    font-size: 0.8rem !important;
-    padding: 8px 18px !important;
-    width: 100% !important;
-}
-
-.stButton > button:hover {
-    background: #3b82f6 !important;
-}
-
-input[type="password"], input[type="text"] {
-    background: #fff !important;
-    border: 1px solid #e0e0de !important;
-    color: #1a1a1a !important;
-    border-radius: 8px !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.stSuccess {
-    background: #f0f7ff !important;
-    border: 1px solid #3b82f644 !important;
-    color: #1e40af !important;
-    border-radius: 8px !important;
-}
-
-.stInfo {
-    background: #fafaf9 !important;
-    border: 1px solid #e0e0de !important;
-    color: #555 !important;
-    border-radius: 8px !important;
-}
-
-.stWarning {
-    background: #fff7ed !important;
-    border: 1px solid #fdba7466 !important;
-    border-radius: 8px !important;
-}
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-thumb { background: #d0d0ce; border-radius: 3px; }
-
-hr { border-color: #e0e0de !important; }
+*{box-sizing:border-box}
+html,body,[data-testid="stAppViewContainer"]{background:#f0f0ee !important;color:#1a1a1a !important;font-family:'Inter',sans-serif !important}
+[data-testid="stSidebar"]{background:#ededed !important;border-right:1px solid #e0e0de !important}
+#MainMenu,footer{visibility:hidden}
+.stDeployButton{display:none}
+.adrian-header{display:flex;align-items:center;gap:16px;padding:28px 0 24px 0;border-bottom:1px solid #e0e0de;margin-bottom:28px}
+.adrian-logo{width:44px;height:44px;border-radius:50%;background:#ededed;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.adrian-title h1{font-size:1.6rem;font-weight:600;letter-spacing:-0.025em;margin:0 0 2px 0;color:#1a1a1a;line-height:1.15}
+.adrian-title p{font-size:0.8rem;color:#888;margin:0;font-weight:400}
+.status-dot{width:6px;height:6px;background:#3b82f6;border-radius:50%;display:inline-block;margin-right:6px}
+.welcome-card{background:#ededed;border:1px solid #e0e0de;border-radius:16px;padding:40px 28px;margin:16px 0;text-align:center}
+.welcome-badge{display:inline-block;font-size:11.5px;font-weight:500;color:#3b82f6;margin-bottom:16px}
+.welcome-card h2{font-size:1.5rem;font-weight:500;color:#1a1a1a;margin:0 0 12px 0;letter-spacing:-0.025em;line-height:1.2}
+.welcome-card p{color:#666;font-size:0.875rem;line-height:1.6;margin:0;font-weight:400}
+.stat-card{background:#ededed;border:1px solid #e0e0de;border-radius:12px;padding:14px;text-align:center}
+.stat-val{font-size:1.4rem;font-weight:600;color:#1a1a1a;line-height:1;margin-bottom:4px;letter-spacing:-0.02em}
+.stat-lbl{font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.08em;font-weight:500}
+.msg-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px}
+.msg-row.user{flex-direction:row-reverse}
+.msg-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:14px;font-weight:600}
+.msg-avatar.adrian{background:#1a1a1a;color:#fff}
+.msg-avatar.user{background:#3b82f6;color:#fff}
+.msg-bubble{max-width:75%;padding:14px 18px;border-radius:14px;font-size:0.9rem;line-height:1.65;font-weight:400}
+.msg-bubble.adrian{background:#ededed;border:1px solid #e0e0de;color:#1a1a1a;border-top-left-radius:4px}
+.msg-bubble.user{background:#3b82f6;color:#fff;border-top-right-radius:4px}
+.msg-name{font-size:0.7rem;font-weight:500;margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase;color:#888}
+.msg-name.user{text-align:right}
+.stButton>button{background:#1a1a1a !important;color:#fff !important;border:none !important;border-radius:999px !important;font-family:'Inter',sans-serif !important;font-weight:500 !important;font-size:0.8rem !important;padding:8px 18px !important;width:100% !important}
+.stButton>button:hover{background:#3b82f6 !important}
+input[type="password"],input[type="text"]{background:#fff !important;border:1px solid #e0e0de !important;color:#1a1a1a !important;border-radius:8px !important}
+.stSuccess{background:#f0f7ff !important;border:1px solid #3b82f644 !important;color:#1e40af !important;border-radius:8px !important}
+.stInfo{background:#fafaf9 !important;border:1px solid #e0e0de !important;color:#555 !important;border-radius:8px !important}
+.stWarning{background:#fff7ed !important;border:1px solid #fdba7466 !important;border-radius:8px !important}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-thumb{background:#d0d0ce;border-radius:3px}
+hr{border-color:#e0e0de !important}
 </style>
 """, unsafe_allow_html=True)
+
+
+# ── OpenRouter config ────────────────────────────────────────────────────────
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+LLM_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
+
+
+def get_openrouter_client(api_key):
+    """Returns OpenAI client pointed at OpenRouter."""
+    return OpenAI(
+        api_key=api_key,
+        base_url=OPENROUTER_BASE_URL,
+    )
 
 
 # ── Session state ────────────────────────────────────────────────────────────
 def init_state():
     defaults = {
-        "messages": [], "chunks": [], "faiss_index": None,
+        "messages": [], "chunks": [], "chunk_keywords": [],
         "pdf_name": None, "chunk_count": 0, "total_questions": 0,
     }
     for k, v in defaults.items():
@@ -279,47 +82,56 @@ def init_state():
 init_state()
 
 
-# ── PDF + RAG ─────────────────────────────────────────────────────────────────
-def extract_chunks(file, chunk_size=800, overlap=100):
+# ── PDF chunking ─────────────────────────────────────────────────────────────
+def extract_chunks(file, chunk_size=600, overlap=80):
     reader = PdfReader(file)
     full_text = ""
     for page in reader.pages:
-        full_text += page.extract_text() + "\n\n"
-    
+        try:
+            full_text += page.extract_text() + "\n\n"
+        except Exception:
+            continue
+
     words = full_text.split()
     chunks = []
     i = 0
     while i < len(words):
-        chunk = " ".join(words[i:i+chunk_size])
+        chunk = " ".join(words[i:i + chunk_size])
         chunks.append(chunk)
         i += chunk_size - overlap
     return chunks
 
 
-def get_embeddings(texts, client):
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=texts
-    )
-    return [r.embedding for r in response.data]
+# ── Lightweight retrieval (TF-IDF style, no embeddings API needed) ──────────
+import re
+from collections import Counter
+
+def tokenize(text):
+    return re.findall(r"\b[a-z]{3,}\b", text.lower())
 
 
-def build_index(embeddings):
-    matrix = np.array(embeddings, dtype="float32")
-    faiss.normalize_L2(matrix)
-    index = faiss.IndexFlatIP(matrix.shape[1])
-    index.add(matrix)
-    return index
+def build_chunk_index(chunks):
+    """Returns list of word frequency dicts for each chunk."""
+    return [Counter(tokenize(c)) for c in chunks]
 
 
-def search(query, index, chunks, client, k=4):
-    q_emb = get_embeddings([query], client)[0]
-    q_vec = np.array([q_emb], dtype="float32")
-    faiss.normalize_L2(q_vec)
-    _, indices = index.search(q_vec, k)
-    return [chunks[i] for i in indices[0] if i < len(chunks)]
+def search_chunks(query, chunks, chunk_keywords, k=4):
+    """Simple keyword overlap scoring (no embeddings needed)."""
+    q_tokens = set(tokenize(query))
+    if not q_tokens:
+        return chunks[:k]
+
+    scores = []
+    for i, kw_dict in enumerate(chunk_keywords):
+        score = sum(kw_dict.get(t, 0) for t in q_tokens)
+        scores.append((score, i))
+
+    scores.sort(reverse=True)
+    top_idx = [i for _, i in scores[:k]]
+    return [chunks[i] for i in top_idx]
 
 
+# ── Chat function ────────────────────────────────────────────────────────────
 def ask_adrian(question, context_chunks, history, client):
     context = "\n\n---\n\n".join(context_chunks)
     history_text = ""
@@ -345,19 +157,19 @@ Previous conversation:
 Student's question: {question}"""
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=LLM_MODEL,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user_msg}
         ],
         temperature=0.5,
-        max_tokens=1000,
+        max_tokens=800,
     )
     return response.choices[0].message.content
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# MAIN PAGE — Everything inline (no sidebar dependency)
+# MAIN PAGE
 # ══════════════════════════════════════════════════════════════════════════════
 
 st.markdown("""
@@ -369,30 +181,33 @@ st.markdown("""
     </div>
     <div class="adrian-title">
         <h1>Adrian</h1>
-        <p><span class="status-dot"></span>Document intelligence · Retrieval-augmented · Conversational</p>
+        <p><span class="status-dot"></span>Document intelligence · Powered by Llama 3.2 (Free) · Conversational</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 
-# ── Setup section (always visible at top of main page) ───────────────────────
-with st.expander("⚙️  Setup — API key & document upload", expanded=(st.session_state.faiss_index is None)):
+# ── Setup section ─────────────────────────────────────────────────────────────
+with st.expander("⚙️  Setup — API key & document upload", expanded=(not st.session_state.chunks)):
     col1, col2 = st.columns([1, 1])
-    
+
     with col1:
-        st.markdown("**1. OpenAI API Key**")
+        st.markdown("**1. OpenRouter API Key**")
         api_key = st.text_input(
             "API Key",
             type="password",
-            placeholder="sk-...",
+            placeholder="sk-or-v1-...",
             label_visibility="collapsed",
-            help="Get yours free at platform.openai.com"
+            help="Free at openrouter.ai — no credit card needed"
         )
         if api_key:
-            st.success("✓ Connected")
+            if api_key.startswith("sk-or-"):
+                st.success("✓ Connected")
+            else:
+                st.warning("⚠ Should start with sk-or-")
         else:
-            st.caption("Get one free at platform.openai.com")
-    
+            st.caption("Get free key at openrouter.ai/keys")
+
     with col2:
         st.markdown("**2. Upload Study PDF**")
         uploaded_file = st.file_uploader(
@@ -407,19 +222,11 @@ with st.expander("⚙️  Setup — API key & document upload", expanded=(st.ses
         if uploaded_file.name != st.session_state.pdf_name:
             with st.spinner("Adrian is reading your document..."):
                 try:
-                    client = OpenAI(api_key=api_key)
                     chunks = extract_chunks(uploaded_file)
-                    
-                    all_embeddings = []
-                    for i in range(0, len(chunks), 50):
-                        batch = chunks[i:i+50]
-                        embs = get_embeddings(batch, client)
-                        all_embeddings.extend(embs)
-                    
-                    index = build_index(all_embeddings)
-                    
+                    chunk_keywords = build_chunk_index(chunks)
+
                     st.session_state.chunks = chunks
-                    st.session_state.faiss_index = index
+                    st.session_state.chunk_keywords = chunk_keywords
                     st.session_state.chunk_count = len(chunks)
                     st.session_state.pdf_name = uploaded_file.name
                     st.session_state.messages = []
@@ -430,13 +237,13 @@ with st.expander("⚙️  Setup — API key & document upload", expanded=(st.ses
                     })
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error(f"Error reading PDF: {e}")
     elif uploaded_file and not api_key:
         st.warning("Add your API key first ↑")
 
 
-# ── Welcome card or chat ─────────────────────────────────────────────────────
-ready = st.session_state.get("faiss_index") is not None
+# ── Welcome / chat ──────────────────────────────────────────────────────────
+ready = bool(st.session_state.chunks)
 
 if not ready:
     st.markdown("""
@@ -445,18 +252,17 @@ if not ready:
         <h2>A study companion that<br>actually reads your documents.</h2>
         <p>
             Upload your lecture notes, textbooks, or research papers above.<br>
-            Adrian indexes them with vector search and answers questions<br>
-            grounded in what's actually written.
+            Adrian indexes them and answers questions grounded<br>
+            in what's actually written. Powered by free Llama 3.2.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
 else:
-    # Stats row
     c1, c2, c3 = st.columns(3)
-    with c1: 
+    with c1:
         st.markdown(f'<div class="stat-card"><div class="stat-val">{st.session_state.chunk_count}</div><div class="stat-lbl">Chunks</div></div>', unsafe_allow_html=True)
-    with c2: 
+    with c2:
         st.markdown(f'<div class="stat-card"><div class="stat-val">{st.session_state.total_questions}</div><div class="stat-lbl">Queries</div></div>', unsafe_allow_html=True)
     with c3:
         short = (st.session_state.pdf_name or "")[:18]
@@ -464,7 +270,6 @@ else:
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
-    # Chat messages
     for msg in st.session_state.messages:
         is_user = msg["role"] == "user"
         row_cls = "msg-row user" if is_user else "msg-row"
@@ -481,7 +286,6 @@ else:
             unsafe_allow_html=True
         )
 
-    # Clear button
     col_a, col_b, col_c = st.columns([1, 1, 1])
     with col_b:
         if st.button("Clear Chat"):
@@ -489,7 +293,6 @@ else:
             st.session_state.total_questions = 0
             st.rerun()
 
-    # Chat input
     user_input = st.chat_input("Ask Adrian about your document...")
     if user_input and user_input.strip():
         st.session_state.messages.append({"role": "user", "content": user_input})
@@ -497,12 +300,11 @@ else:
 
         with st.spinner("Adrian is thinking..."):
             try:
-                client = OpenAI(api_key=api_key)
-                context_chunks = search(
+                client = get_openrouter_client(api_key)
+                context_chunks = search_chunks(
                     user_input,
-                    st.session_state.faiss_index,
                     st.session_state.chunks,
-                    client
+                    st.session_state.chunk_keywords
                 )
                 answer = ask_adrian(
                     user_input, context_chunks,
@@ -512,6 +314,6 @@ else:
             except Exception as e:
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": f"An error occurred: `{str(e)[:120]}`\n\nPlease verify your API key and try again."
+                    "content": f"Error: `{str(e)[:200]}`\n\nMake sure your OpenRouter key is valid."
                 })
         st.rerun()
