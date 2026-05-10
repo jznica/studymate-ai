@@ -11,6 +11,8 @@ st.set_page_config(
 
 import numpy as np
 from pypdf import PdfReader
+import re
+from collections import Counter
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -58,15 +60,19 @@ hr{border-color:#e0e0de !important}
 
 # ── OpenRouter config ────────────────────────────────────────────────────────
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-LLM_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
+
+# Fallback list — Adrian tries these in order until one isn't rate-limited
+FREE_MODELS = [
+    "deepseek/deepseek-chat-v3.1:free",
+    "z-ai/glm-4.5-air:free",
+    "google/gemma-3-27b-it:free",
+    "qwen/qwen3-coder:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
+]
 
 
 def get_openrouter_client(api_key):
-    """Returns OpenAI client pointed at OpenRouter."""
-    return OpenAI(
-        api_key=api_key,
-        base_url=OPENROUTER_BASE_URL,
-    )
+    return OpenAI(api_key=api_key, base_url=OPENROUTER_BASE_URL)
 
 
 # ── Session state ────────────────────────────────────────────────────────────
@@ -91,47 +97,38 @@ def extract_chunks(file, chunk_size=600, overlap=80):
             full_text += page.extract_text() + "\n\n"
         except Exception:
             continue
-
     words = full_text.split()
     chunks = []
     i = 0
     while i < len(words):
-        chunk = " ".join(words[i:i + chunk_size])
-        chunks.append(chunk)
+        chunks.append(" ".join(words[i:i + chunk_size]))
         i += chunk_size - overlap
     return chunks
 
 
-# ── Lightweight retrieval (TF-IDF style, no embeddings API needed) ──────────
-import re
-from collections import Counter
-
+# ── Lightweight retrieval ────────────────────────────────────────────────────
 def tokenize(text):
     return re.findall(r"\b[a-z]{3,}\b", text.lower())
 
 
 def build_chunk_index(chunks):
-    """Returns list of word frequency dicts for each chunk."""
     return [Counter(tokenize(c)) for c in chunks]
 
 
 def search_chunks(query, chunks, chunk_keywords, k=4):
-    """Simple keyword overlap scoring (no embeddings needed)."""
     q_tokens = set(tokenize(query))
     if not q_tokens:
         return chunks[:k]
-
     scores = []
     for i, kw_dict in enumerate(chunk_keywords):
         score = sum(kw_dict.get(t, 0) for t in q_tokens)
         scores.append((score, i))
-
     scores.sort(reverse=True)
     top_idx = [i for _, i in scores[:k]]
     return [chunks[i] for i in top_idx]
 
 
-# ── Chat function ────────────────────────────────────────────────────────────
+# ── Chat function with auto-fallback across models ──────────────────────────
 def ask_adrian(question, context_chunks, history, client):
     context = "\n\n---\n\n".join(context_chunks)
     history_text = ""
@@ -156,16 +153,24 @@ Previous conversation:
 
 Student's question: {question}"""
 
-    response = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user_msg}
-        ],
-        temperature=0.5,
-        max_tokens=800,
-    )
-    return response.choices[0].message.content
+    last_error = None
+    for model in FREE_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_msg}
+                ],
+                temperature=0.5,
+                max_tokens=800,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            last_error = e
+            continue
+
+    raise Exception(f"All free models are rate-limited right now. Try again in a minute. ({str(last_error)[:100]})")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -181,7 +186,7 @@ st.markdown("""
     </div>
     <div class="adrian-title">
         <h1>Adrian</h1>
-        <p><span class="status-dot"></span>Document intelligence · Powered by Llama 3.2 (Free) · Conversational</p>
+        <p><span class="status-dot"></span>Document intelligence · Free LLM via OpenRouter · Conversational</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -194,9 +199,7 @@ with st.expander("⚙️  Setup — API key & document upload", expanded=(not st
     with col1:
         st.markdown("**1. OpenRouter API Key**")
         api_key = st.text_input(
-            "API Key",
-            type="password",
-            placeholder="sk-or-v1-...",
+            "API Key", type="password", placeholder="sk-or-v1-...",
             label_visibility="collapsed",
             help="Free at openrouter.ai — no credit card needed"
         )
@@ -210,11 +213,7 @@ with st.expander("⚙️  Setup — API key & document upload", expanded=(not st
 
     with col2:
         st.markdown("**2. Upload Study PDF**")
-        uploaded_file = st.file_uploader(
-            "PDF",
-            type="pdf",
-            label_visibility="collapsed"
-        )
+        uploaded_file = st.file_uploader("PDF", type="pdf", label_visibility="collapsed")
         if not uploaded_file:
             st.caption("Lecture notes, textbooks, papers...")
 
@@ -224,7 +223,6 @@ with st.expander("⚙️  Setup — API key & document upload", expanded=(not st
                 try:
                     chunks = extract_chunks(uploaded_file)
                     chunk_keywords = build_chunk_index(chunks)
-
                     st.session_state.chunks = chunks
                     st.session_state.chunk_keywords = chunk_keywords
                     st.session_state.chunk_count = len(chunks)
@@ -253,7 +251,7 @@ if not ready:
         <p>
             Upload your lecture notes, textbooks, or research papers above.<br>
             Adrian indexes them and answers questions grounded<br>
-            in what's actually written. Powered by free Llama 3.2.
+            in what's actually written. Powered by free LLMs.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -302,9 +300,7 @@ else:
             try:
                 client = get_openrouter_client(api_key)
                 context_chunks = search_chunks(
-                    user_input,
-                    st.session_state.chunks,
-                    st.session_state.chunk_keywords
+                    user_input, st.session_state.chunks, st.session_state.chunk_keywords
                 )
                 answer = ask_adrian(
                     user_input, context_chunks,
@@ -314,6 +310,6 @@ else:
             except Exception as e:
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": f"Error: `{str(e)[:200]}`\n\nMake sure your OpenRouter key is valid."
+                    "content": f"Error: `{str(e)[:200]}`"
                 })
         st.rerun()
