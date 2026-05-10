@@ -276,7 +276,10 @@ else:
         name_cls = "msg-name user" if is_user else "msg-name adrian"
         avatar = "U" if is_user else "A"
         name = "You" if is_user else "Adrian"
-        content = msg["content"].replace("\n", "<br>")
+        import re as _re
+        content = msg["content"]
+        content = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
+        content = content.replace("\n", "<br>")
         st.markdown(
             f'<div class="{row_cls}"><div class="{ava_cls}">{avatar}</div>'
             f'<div><div class="{name_cls}">{name}</div>'
