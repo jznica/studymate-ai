@@ -7,7 +7,7 @@ from openai import OpenAI
 st.set_page_config(
     page_title="Adrian — Study Companion",
     page_icon="◆",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="expanded",
 )
 
@@ -37,7 +37,14 @@ html, body, [data-testid="stAppViewContainer"] {
     font-family: 'Inter', sans-serif !important;
 }
 
-#MainMenu, footer, header { visibility: hidden; }
+/* KEEP sidebar toggle visible */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="collapsedControl"] {
+    display: block !important;
+    visibility: visible !important;
+}
+
+#MainMenu, footer { visibility: hidden; }
 .stDeployButton { display: none; }
 
 /* ── Header ── */
@@ -61,11 +68,6 @@ html, body, [data-testid="stAppViewContainer"] {
     flex-shrink: 0;
 }
 
-.adrian-logo svg {
-    width: 18px;
-    height: 18px;
-}
-
 .adrian-title h1 {
     font-size: clamp(1.4rem, 2.5vw, 1.75rem);
     font-weight: 600;
@@ -80,9 +82,6 @@ html, body, [data-testid="stAppViewContainer"] {
     color: #888;
     margin: 0;
     font-weight: 400;
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
 
 .status-dot {
@@ -91,6 +90,7 @@ html, body, [data-testid="stAppViewContainer"] {
     background: #3b82f6;
     border-radius: 50%;
     display: inline-block;
+    margin-right: 6px;
 }
 
 /* ── Welcome card ── */
@@ -98,15 +98,13 @@ html, body, [data-testid="stAppViewContainer"] {
     background: #ededed;
     border: 1px solid #e0e0de;
     border-radius: 16px;
-    padding: 48px 32px;
+    padding: 40px 28px;
     margin: 16px 0;
     text-align: center;
 }
 
 .welcome-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    display: inline-block;
     font-size: 11.5px;
     font-weight: 500;
     color: #3b82f6;
@@ -114,7 +112,7 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 
 .welcome-card h2 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 500;
     color: #1a1a1a;
     margin: 0 0 12px 0;
@@ -179,15 +177,8 @@ html, body, [data-testid="stAppViewContainer"] {
     font-weight: 600;
 }
 
-.msg-avatar.adrian {
-    background: #1a1a1a;
-    color: #fff;
-}
-
-.msg-avatar.user {
-    background: #3b82f6;
-    color: #fff;
-}
+.msg-avatar.adrian { background: #1a1a1a; color: #fff; }
+.msg-avatar.user { background: #3b82f6; color: #fff; }
 
 .msg-bubble {
     max-width: 75%;
@@ -222,49 +213,6 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .msg-name.user { text-align: right; }
 
-/* ── Sidebar elements ── */
-.sb-label {
-    font-size: 0.7rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #888;
-    margin-bottom: 8px;
-    display: block;
-}
-
-.sb-brand {
-    text-align: center;
-    padding: 24px 0 16px 0;
-}
-
-.sb-brand-logo {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: #1a1a1a;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 12px;
-}
-
-.sb-brand-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1a1a1a;
-    letter-spacing: -0.02em;
-}
-
-.sb-brand-tag {
-    font-size: 0.68rem;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-top: 4px;
-    font-weight: 500;
-}
-
 /* ── Streamlit overrides ── */
 .stButton > button {
     background: #1a1a1a !important;
@@ -275,12 +223,11 @@ html, body, [data-testid="stAppViewContainer"] {
     font-weight: 500 !important;
     font-size: 0.8rem !important;
     padding: 8px 18px !important;
-    transition: all 0.2s ease !important;
+    width: 100% !important;
 }
 
 .stButton > button:hover {
     background: #3b82f6 !important;
-    transform: translateY(-1px);
 }
 
 input[type="password"], input[type="text"] {
@@ -290,14 +237,6 @@ input[type="password"], input[type="text"] {
     border-radius: 8px !important;
     font-family: 'Inter', sans-serif !important;
 }
-
-[data-testid="stFileUploader"] {
-    background: #fff !important;
-    border: 1.5px dashed #d0d0ce !important;
-    border-radius: 10px !important;
-}
-
-[data-testid="stFileUploader"] * { color: #888 !important; }
 
 .stSuccess {
     background: #f0f7ff !important;
@@ -319,54 +258,12 @@ input[type="password"], input[type="text"] {
     border-radius: 8px !important;
 }
 
-/* ── Chat input ── */
-[data-testid="stChatInput"] {
-    background: #fff !important;
-    border: 1px solid #e0e0de !important;
-    border-radius: 12px !important;
-}
-
-[data-testid="stChatInput"] textarea {
-    background: transparent !important;
-    color: #1a1a1a !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-/* ── Source badges ── */
-.source-badge {
-    display: inline-flex;
-    align-items: center;
-    background: #fff;
-    border: 1px solid #e0e0de;
-    border-radius: 6px;
-    padding: 3px 10px;
-    font-size: 0.7rem;
-    color: #666;
-    margin: 8px 4px 0 0;
-    font-weight: 500;
-}
-
-/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d0d0ce; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #b0b0ae; }
 
 hr { border-color: #e0e0de !important; }
-
-[data-testid="stCaptionContainer"] { color: #888 !important; }
 </style>
 """, unsafe_allow_html=True)
-
-
-# ── Logo SVG ──────────────────────────────────────────────────────────────────
-LOGO_SVG_DARK = '''<svg width="18" height="18" viewBox="0 0 256 256" fill="none">
-<path fill="rgb(84, 84, 84)" d="M 160 88 L 194 34 L 216 0 L 256 0 L 256 40 L 221.5 93.5 L 200 128 L 256 128 L 256 256 L 96 256 L 96 168 L 64.246 220 L 40 256 L 0 256 L 0 216 L 34 162 L 56 128 L 0 128 L 0 0 L 160 0 Z"/>
-</svg>'''
-
-LOGO_SVG_LIGHT = '''<svg width="20" height="20" viewBox="0 0 256 256" fill="none">
-<path fill="#fff" d="M 160 88 L 194 34 L 216 0 L 256 0 L 256 40 L 221.5 93.5 L 200 128 L 256 128 L 256 256 L 96 256 L 96 168 L 64.246 220 L 40 256 L 0 256 L 0 216 L 34 162 L 56 128 L 0 128 L 0 0 L 160 0 Z"/>
-</svg>'''
 
 
 # ── Session state ────────────────────────────────────────────────────────────
@@ -382,7 +279,7 @@ def init_state():
 init_state()
 
 
-# ── PDF + RAG (no LangChain) ──────────────────────────────────────────────────
+# ── PDF + RAG ─────────────────────────────────────────────────────────────────
 def extract_chunks(file, chunk_size=800, overlap=100):
     reader = PdfReader(file)
     full_text = ""
@@ -432,21 +329,12 @@ def ask_adrian(question, context_chunks, history, client):
 
     system = """You are Adrian — a thoughtful, professional AI study companion.
 You are clear, precise, and encouraging without being overly casual.
-You help students understand documents deeply and study effectively.
-
-Your communication style:
-- Clear and structured explanations
-- Warm and supportive, but professional
-- Uses **bold** for key terms
-- Provides examples when helpful
-- Concise — no fluff, no excessive emojis
 
 STRICT RULES:
 - ONLY answer from the provided document context
-- If something isn't in the context, say so honestly:
-  "That doesn't appear to be in your document. Would you like help with what's available?"
-- Never fabricate information
-- Cite specifics from the document when possible"""
+- If something isn't in the context: "That doesn't appear to be in your document."
+- Use **bold** for key terms
+- Never fabricate information"""
 
     user_msg = f"""Document context:
 {context}
@@ -468,33 +356,56 @@ Student's question: {question}"""
     return response.choices[0].message.content
 
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown(f"""
-    <div class="sb-brand">
-        <div class="sb-brand-logo">{LOGO_SVG_LIGHT}</div>
-        <div class="sb-brand-name">Adrian</div>
-        <div class="sb-brand-tag">Study Companion</div>
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN PAGE — Everything inline (no sidebar dependency)
+# ══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("""
+<div class="adrian-header">
+    <div class="adrian-logo">
+        <svg width="20" height="20" viewBox="0 0 256 256" fill="none">
+            <path fill="rgb(84,84,84)" d="M 160 88 L 194 34 L 216 0 L 256 0 L 256 40 L 221.5 93.5 L 200 128 L 256 128 L 256 256 L 96 256 L 96 168 L 64.246 220 L 40 256 L 0 256 L 0 216 L 34 162 L 56 128 L 0 128 L 0 0 L 160 0 Z"/>
+        </svg>
     </div>
-    """, unsafe_allow_html=True)
+    <div class="adrian-title">
+        <h1>Adrian</h1>
+        <p><span class="status-dot"></span>Document intelligence · Retrieval-augmented · Conversational</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-    st.divider()
 
-    st.markdown('<span class="sb-label">API Key</span>', unsafe_allow_html=True)
-    api_key = st.text_input("API Key", type="password", placeholder="sk-...", label_visibility="collapsed")
-    if api_key:
-        st.success("Connected")
-    else:
-        st.caption("Session-only · never stored")
-
-    st.divider()
-
-    st.markdown('<span class="sb-label">Upload Document</span>', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("PDF", type="pdf", label_visibility="collapsed")
+# ── Setup section (always visible at top of main page) ───────────────────────
+with st.expander("⚙️  Setup — API key & document upload", expanded=(st.session_state.faiss_index is None)):
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.markdown("**1. OpenAI API Key**")
+        api_key = st.text_input(
+            "API Key",
+            type="password",
+            placeholder="sk-...",
+            label_visibility="collapsed",
+            help="Get yours free at platform.openai.com"
+        )
+        if api_key:
+            st.success("✓ Connected")
+        else:
+            st.caption("Get one free at platform.openai.com")
+    
+    with col2:
+        st.markdown("**2. Upload Study PDF**")
+        uploaded_file = st.file_uploader(
+            "PDF",
+            type="pdf",
+            label_visibility="collapsed"
+        )
+        if not uploaded_file:
+            st.caption("Lecture notes, textbooks, papers...")
 
     if uploaded_file and api_key:
         if uploaded_file.name != st.session_state.pdf_name:
-            with st.spinner("Processing your document..."):
+            with st.spinner("Adrian is reading your document..."):
                 try:
                     client = OpenAI(api_key=api_key)
                     chunks = extract_chunks(uploaded_file)
@@ -521,38 +432,10 @@ with st.sidebar:
                 except Exception as e:
                     st.error(f"Error: {e}")
     elif uploaded_file and not api_key:
-        st.warning("Add your API key first")
-
-    st.divider()
-
-    if st.session_state.pdf_name:
-        st.markdown('<span class="sb-label">Session</span>', unsafe_allow_html=True)
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown(f'<div class="stat-card"><div class="stat-val">{st.session_state.chunk_count}</div><div class="stat-lbl">Chunks</div></div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown(f'<div class="stat-card"><div class="stat-val">{st.session_state.total_questions}</div><div class="stat-lbl">Queries</div></div>', unsafe_allow_html=True)
-        st.caption(f"Document · {st.session_state.pdf_name[:30]}")
-        if st.button("Clear Session"):
-            st.session_state.messages = []
-            st.session_state.total_questions = 0
-            st.rerun()
-
-    st.divider()
-    st.markdown('<div style="font-size:0.7rem;color:#999;text-align:center;line-height:1.8;font-weight:400;">FAISS · OpenAI · pypdf<br>Built with Streamlit</div>', unsafe_allow_html=True)
+        st.warning("Add your API key first ↑")
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div class="adrian-header">
-    <div class="adrian-logo">{LOGO_SVG_DARK}</div>
-    <div class="adrian-title">
-        <h1>Adrian</h1>
-        <p><span class="status-dot"></span>Document intelligence · Retrieval-augmented · Conversational</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
+# ── Welcome card or chat ─────────────────────────────────────────────────────
 ready = st.session_state.get("faiss_index") is not None
 
 if not ready:
@@ -561,30 +444,27 @@ if not ready:
         <div class="welcome-badge">— Introducing Adrian</div>
         <h2>A study companion that<br>actually reads your documents.</h2>
         <p>
-            Upload your lecture notes, textbooks, or research papers.<br>
+            Upload your lecture notes, textbooks, or research papers above.<br>
             Adrian indexes them with vector search and answers questions<br>
             grounded in what's actually written.
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    if not api_key:
-        st.info("Begin by entering your OpenAI API key in the sidebar.")
-    else:
-        st.info("Upload a PDF in the sidebar to start.")
 
 else:
+    # Stats row
     c1, c2, c3 = st.columns(3)
     with c1: 
-        st.markdown(f'<div class="stat-card"><div class="stat-val">{st.session_state.chunk_count}</div><div class="stat-lbl">Indexed Chunks</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stat-card"><div class="stat-val">{st.session_state.chunk_count}</div><div class="stat-lbl">Chunks</div></div>', unsafe_allow_html=True)
     with c2: 
-        st.markdown(f'<div class="stat-card"><div class="stat-val">{st.session_state.total_questions}</div><div class="stat-lbl">Queries Asked</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stat-card"><div class="stat-val">{st.session_state.total_questions}</div><div class="stat-lbl">Queries</div></div>', unsafe_allow_html=True)
     with c3:
-        short = (st.session_state.pdf_name or "")[:20]
+        short = (st.session_state.pdf_name or "")[:18]
         st.markdown(f'<div class="stat-card"><div class="stat-val" style="font-size:0.85rem;font-weight:500">Active</div><div class="stat-lbl">{short}</div></div>', unsafe_allow_html=True)
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
+    # Chat messages
     for msg in st.session_state.messages:
         is_user = msg["role"] == "user"
         row_cls = "msg-row user" if is_user else "msg-row"
@@ -601,6 +481,15 @@ else:
             unsafe_allow_html=True
         )
 
+    # Clear button
+    col_a, col_b, col_c = st.columns([1, 1, 1])
+    with col_b:
+        if st.button("Clear Chat"):
+            st.session_state.messages = []
+            st.session_state.total_questions = 0
+            st.rerun()
+
+    # Chat input
     user_input = st.chat_input("Ask Adrian about your document...")
     if user_input and user_input.strip():
         st.session_state.messages.append({"role": "user", "content": user_input})
